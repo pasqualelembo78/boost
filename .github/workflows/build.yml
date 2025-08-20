@@ -46,6 +46,9 @@ jobs:
           echo "CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "[conf]" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "tools.android:ndk_path=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
 
       - name: Clone Conan Center Index
         run: |
@@ -65,7 +68,6 @@ jobs:
                   self.requires("boost/1.81.0@conan/stable")
 
               def test(self):
-                  # Non compila nulla, serve solo per far felice Conan
                   pass
           EOF
 
