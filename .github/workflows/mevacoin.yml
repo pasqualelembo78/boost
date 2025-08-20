@@ -1,0 +1,84 @@
+name: Build Mevacoin Android
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout del repository Mevapool
+      - name: Checkout Mevapool repo
+        uses: actions/checkout@v4
+        with:
+          repository: pasqualelembo78/mevapool
+          fetch-depth: 0
+
+      # 2️⃣ Setup Python 3.10
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git unzip cmake ninja-build build-essential pkg-config
+          pip install "conan==1.60.2"
+
+      # 4️⃣ Download Android NDK
+      - name: Download Android NDK
+        run: |
+          wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
+          unzip android-ndk-r26d-linux.zip
+          mv android-ndk-r26d $HOME/android-ndk
+
+      # 5️⃣ Scarica la cache di Boost
+      - name: Download Conan cache
+        uses: actions/download-artifact@v4
+        with:
+          name: conan-cache
+          path: $HOME/conan_cache
+
+      # 6️⃣ Creazione profilo Conan Android (arm64-v8a)
+      - name: Create Conan profile (Android arm64-v8a)
+        run: |
+          mkdir -p ~/.conan/profiles
+          echo "[settings]" > ~/.conan/profiles/android_21_arm64_v8a
+          echo "os=Android" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "os.api_level=21" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "arch=armv8" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "compiler=clang" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "compiler.version=9" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "compiler.libcxx=libstdc++" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "build_type=Release" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "[env]" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "ANDROID_NDK=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "CC=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib" >> ~/.conan/profiles/android_21_arm64_v8a
+
+      # 7️⃣ Build Mevacoin/Mevapool con Boost già cross-compilato
+      - name: Build Mevacoin Android
+        run: |
+          mkdir -p build/android
+          cd build/android
+          cmake -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=$HOME/android-ndk/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-21 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBOOST_ROOT=$HOME/conan_cache/boost/1.81.0/conan/stable/package/sha256_c33b69ad4483d3d4c845d2b7d0b4d63420c36aeb685f2306c89690bf64483868/include \
+            ../../
+          cmake --build .
+
+      # 8️⃣ Upload binario Android
+      - name: Upload Mevacoin Android binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: mevacoin-android
+          path: build/android/mevacoind
