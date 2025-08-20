@@ -1,7 +1,7 @@
 name: Build Boost for Android (header-only)
 
 on:
-  workflow_dispatch:   # Avvio manuale dal tab Actions
+  workflow_dispatch: # Avvio manuale dal tab Actions
 
 jobs:
   build:
@@ -14,7 +14,7 @@ jobs:
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install dependencies
         run: |
@@ -46,61 +46,6 @@ jobs:
           echo "CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib" >> ~/.conan/profiles/android_21_arm64_v8a
-
-      - name: Clone Conan Center Index
-        run: |
-          git clone https://github.com/conan-io/conan-center-index.git
-
-      - name: Build Boost (header-only)
-        run: |
-          cd conan-center-index/recipes/boost/all
-          conan create . boost/1.81.0@conan/stable \
-            --profile android_21_arm64_v8a \
-            -o boost:header_only=True
-
-      - name: Upload Conan cache as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: conan-cache
-          path: ~/.conan/data          os.api_level=21
-          arch=armv8
-          compiler=clang
-          compiler.version=9
-          compiler.libcxx=libc++
-          build_type=Release
-
-          [env]
-          ANDROID_NDK=$HOME/android-ndk
-          CC=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
-          CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++
-          AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
-          RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
-          EOF
-
-      - name: Clone Conan Center Index
-        run: |
-          git clone https://github.com/conan-io/conan-center-index.git
-
-      - name: Build Boost (header-only)
-        run: |
-          cd conan-center-index/recipes/boost/all
-          conan create . boost/1.81.0@conan/stable \
-            --profile android_21_arm64_v8a \
-            -o boost:header_only=True
-
-      - name: Upload Conan cache as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: conan-cache
-          path: ~/.conan/data          build_type=Release
-
-          [env]
-          ANDROID_NDK=$HOME/android-ndk
-          CC=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
-          CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++
-          AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
-          RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
-          EOF
 
       - name: Clone Conan Center Index
         run: |
