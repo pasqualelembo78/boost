@@ -1,4 +1,4 @@
-name: Build Mevacoin Android
+name: Build Mevacoin
 
 on:
   workflow_dispatch:
