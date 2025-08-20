@@ -56,7 +56,7 @@ jobs:
             -o boost:header_only=True
 
       - name: Upload Conan cache as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: conan-cache
           path: ~/.conan/data
