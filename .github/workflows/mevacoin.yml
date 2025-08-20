@@ -1,4 +1,4 @@
-name: Build Boost for Android (full)
+name: Build Mevacoin Android (with Boost)
 
 on:
   workflow_dispatch:
@@ -50,12 +50,67 @@ jobs:
           echo "[conf]" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "tools.android:ndk_path=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
 
-      - name: Build Boost for Android (full)
+      - name: Build Boost for Android
         run: |
           conan install boost/1.81.0@ --profile android_21_arm64_v8a --build=missing
 
-      - name: Upload Conan cache as artifact
+      - name: Upload Conan Boost cache
         uses: actions/upload-artifact@v4
         with:
           name: conan-boost-android
           path: ~/.conan/data
+
+  build-mevacoin:
+    runs-on: ubuntu-latest
+    needs: build-boost
+
+    steps:
+      - name: Checkout Mevacoin repo
+        uses: actions/checkout@v4
+        with:
+          repository: pasqualelembo78/mevacoin
+          fetch-depth: 0
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git unzip cmake ninja-build
+          pip install "conan==1.60.2"
+
+      - name: Download Android NDK
+        run: |
+          wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
+          unzip android-ndk-r26d-linux.zip
+          mv android-ndk-r26d $HOME/android-ndk
+
+      - name: Restore Conan Boost cache
+        uses: actions/download-artifact@v4
+        with:
+          name: conan-boost-android
+          path: ~/.conan/data
+
+      - name: Build Mevacoin
+        run: |
+          mkdir -p build/android
+          cd build/android
+          cmake -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=$HOME/android-ndk/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-21 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBOOST_ROOT=$HOME/.conan/data/boost/1.81.0/_/_/package \
+            -DBOOST_INCLUDEDIR=$HOME/.conan/data/boost/1.81.0/_/_/package/*/include \
+            -DBOOST_LIBRARYDIR=$HOME/.conan/data/boost/1.81.0/_/_/package/*/lib \
+            ../..
+          cmake --build .
+
+      - name: Upload Mevacoin Android binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: mevacoin-android
+          path: build/android/mevacoind
