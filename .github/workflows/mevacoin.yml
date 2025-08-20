@@ -8,11 +8,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout del repository Mevapool
-      - name: Checkout Mevapool repo
+      # 1️⃣ Checkout del repository Mevacoin
+      - name: Checkout Mevacoin repo
         uses: actions/checkout@v4
         with:
-          repository: pasqualelembo78/mevapool
+          repository: pasqualelembo78/mevacoin
+          path: mevacoin
           fetch-depth: 0
 
       # 2️⃣ Setup Python 3.10
@@ -73,7 +74,7 @@ jobs:
             -DANDROID_PLATFORM=android-21 \
             -DCMAKE_BUILD_TYPE=Release \
             -DBOOST_ROOT=$HOME/.conan/data/boost/1.81.0/conan/stable/package/sha256_c33b69ad4483d3d4c845d2b7d0b4d63420c36aeb685f2306c89690bf64483868/include \
-            ../../
+            $GITHUB_WORKSPACE/mevacoin
           cmake --build .
 
       # 8️⃣ Upload binario Android
