@@ -49,6 +49,8 @@ jobs:
           echo "" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "[conf]" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "tools.android:ndk_path=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
+          # Disabilitiamo boost.stacktrace per evitare libbacktrace
+          echo "boost:without_stacktrace=True" >> ~/.conan/profiles/android_21_arm64_v8a
 
       - name: Build Boost for Android
         run: |
