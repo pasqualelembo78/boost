@@ -1,50 +1,33 @@
-name: Build Mevacoin
+name: Build Boost for Android (full)
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-boost:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repo Mevacoin
-      - name: Checkout Mevacoin repo
+      - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          repository: pasqualelembo78/mevacoin
-          fetch-depth: 0
 
-      # 2️⃣ Setup Python
-      - name: Setup Python
+      - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      # 3️⃣ Install tools
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git unzip cmake ninja-build build-essential pkg-config
+          sudo apt install -y git unzip cmake ninja-build
           pip install "conan==1.60.2"
 
-      # 4️⃣ Download Android NDK
       - name: Download Android NDK
         run: |
           wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
           unzip android-ndk-r26d-linux.zip
           mv android-ndk-r26d $HOME/android-ndk
 
-      # 5️⃣ Cache Conan (per Boost e pacchetti futuri)
-      - name: Cache Conan
-        uses: actions/cache@v3
-        with:
-          path: ~/.conan/data
-          key: conan-${{ runner.os }}-android-boost-1.81.0
-          restore-keys: |
-            conan-${{ runner.os }}-android-
-
-      # 6️⃣ Crea profilo Conan Android (arm64-v8a)
       - name: Create Conan profile (Android arm64-v8a)
         run: |
           mkdir -p ~/.conan/profiles
@@ -54,7 +37,7 @@ jobs:
           echo "arch=armv8" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "compiler=clang" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "compiler.version=9" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "compiler.libcxx=libc++" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "compiler.libcxx=libstdc++" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "build_type=Release" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "[env]" >> ~/.conan/profiles/android_21_arm64_v8a
@@ -63,30 +46,16 @@ jobs:
           echo "CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "[conf]" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "tools.android:ndk_path=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
 
-      # 7️⃣ Installa Boost con Conan
-      - name: Install Boost (Conan)
+      - name: Build Boost for Android (full)
         run: |
-          conan install boost/1.81.0@ --profile=android_21_arm64_v8a --build=missing
+          conan install boost/1.81.0@ --profile android_21_arm64_v8a --build=missing
 
-      # 8️⃣ Build Mevacoin Android
-      - name: Build Mevacoin Android
-        run: |
-          mkdir -p build/android
-          cd build/android
-          cmake -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=$HOME/android-ndk/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-21 \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBOOST_INCLUDEDIR=$HOME/.conan/data/boost/1.81.0/_/_/package/*/include \
-            -DBOOST_LIBRARYDIR=$HOME/.conan/data/boost/1.81.0/_/_/package/*/lib \
-            ../..
-          cmake --build .
-
-      # 9️⃣ Upload binario Android
-      - name: Upload Mevacoin Android binary
+      - name: Upload Conan cache as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mevacoin-android
-          path: build/android/mevacoind
+          name: conan-boost-android
+          path: ~/.conan/data
