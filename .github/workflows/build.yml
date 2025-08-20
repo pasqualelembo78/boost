@@ -51,13 +51,30 @@ jobs:
         run: |
           git clone https://github.com/conan-io/conan-center-index.git
 
+      - name: Create minimal test_package
+        run: |
+          mkdir -p conan-center-index/recipes/boost/all/test_package
+          cat > conan-center-index/recipes/boost/all/test_package/conanfile.py <<'EOF'
+          from conan import ConanFile
+
+          class BoostTestConan(ConanFile):
+              settings = "os", "compiler", "arch", "build_type"
+              generators = "CMakeDeps", "CMakeToolchain"
+
+              def requirements(self):
+                  self.requires("boost/1.81.0@conan/stable")
+
+              def test(self):
+                  # Non compila nulla, serve solo per far felice Conan
+                  pass
+          EOF
+
       - name: Build Boost (header-only)
         run: |
           cd conan-center-index/recipes/boost/all
           conan create . boost/1.81.0@conan/stable \
             --profile android_21_arm64_v8a \
-            -o boost:header_only=True \
-            --test-folder=none
+            -o boost:header_only=True
 
       - name: Upload Conan cache as artifact
         uses: actions/upload-artifact@v4
