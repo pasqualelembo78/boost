@@ -35,12 +35,12 @@ jobs:
           unzip android-ndk-r26d-linux.zip
           mv android-ndk-r26d $HOME/android-ndk
 
-      # 5️⃣ Scarica la cache di Boost
-      - name: Download Conan cache
-        uses: actions/download-artifact@v4
+      # 5️⃣ Cache Conan packages (Boost incluso)
+      - name: Cache Conan packages
+        uses: actions/cache@v3
         with:
-          name: conan-cache
-          path: $HOME/conan_cache
+          path: ~/.conan/data
+          key: conan-packages-${{ runner.os }}-boost-1.81.0
 
       # 6️⃣ Creazione profilo Conan Android (arm64-v8a)
       - name: Create Conan profile (Android arm64-v8a)
@@ -72,7 +72,7 @@ jobs:
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-21 \
             -DCMAKE_BUILD_TYPE=Release \
-            -DBOOST_ROOT=$HOME/conan_cache/boost/1.81.0/conan/stable/package/sha256_c33b69ad4483d3d4c845d2b7d0b4d63420c36aeb685f2306c89690bf64483868/include \
+            -DBOOST_ROOT=$HOME/.conan/data/boost/1.81.0/conan/stable/package/sha256_c33b69ad4483d3d4c845d2b7d0b4d63420c36aeb685f2306c89690bf64483868/include \
             ../../
           cmake --build .
 
