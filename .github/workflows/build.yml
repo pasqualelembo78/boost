@@ -51,14 +51,14 @@ jobs:
         run: |
           git clone https://github.com/conan-io/conan-center-index.git
 
-      - name: Build Boost (header-only)
+      - name: Build Boost (header-only, skip test package)
         run: |
           cd conan-center-index/recipes/boost/all
           conan create . boost/1.81.0@conan/stable \
             --profile android_21_arm64_v8a \
             -o boost:header_only=True \
-            -pr:b=android_21_arm64_v8a \
-            -c tools.android:ndk_path=$HOME/android-ndk
+            --build=missing \
+            --test-folder=none
 
       - name: Upload Conan cache as artifact
         uses: actions/upload-artifact@v4
