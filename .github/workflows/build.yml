@@ -1,7 +1,7 @@
 name: Build Boost for Android (header-only)
 
 on:
-  workflow_dispatch: # Avvio manuale dal tab Actions
+  workflow_dispatch:   # Avvio manuale dal tab Actions
 
 jobs:
   build:
@@ -14,7 +14,7 @@ jobs:
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
@@ -56,7 +56,8 @@ jobs:
           cd conan-center-index/recipes/boost/all
           conan create . boost/1.81.0@conan/stable \
             --profile android_21_arm64_v8a \
-            -o boost:header_only=True
+            -o boost:header_only=True \
+            -pr:b=android_21_arm64_v8a   # profilo per la build del test package
 
       - name: Upload Conan cache as artifact
         uses: actions/upload-artifact@v4
