@@ -39,7 +39,7 @@ jobs:
       - name: Create Conan profile (Android arm64-v8a)
         run: |
           mkdir -p ~/.conan/profiles
-          cat << EOF > ~/.conan/profiles/android_21_arm64_v8a
+          cat > ~/.conan/profiles/android_21_arm64_v8a << 'EOF'
 [settings]
 os=Android
 os.api_level=21
