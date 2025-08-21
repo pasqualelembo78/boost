@@ -1,10 +1,10 @@
-name: mevacoin-android
+name: Build Boost for Android (full)
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-boost-libiconv:
+  build-boost:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git unzip cmake ninja-build autoconf automake libtool pkg-config
+          sudo apt install -y git unzip cmake ninja-build
           pip install "conan==1.60.2"
 
       - name: Download Android NDK
@@ -27,14 +27,6 @@ jobs:
           wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
           unzip android-ndk-r26d-linux.zip
           mv android-ndk-r26d $HOME/android-ndk
-
-      - name: Cache Conan packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.conan/data
-          key: conan-android-boost-1.81.0-${{ runner.os }}-${{ hashFiles('**/conanfile.txt') }}
-          restore-keys: |
-            conan-android-boost-1.81.0-${{ runner.os }}-
 
       - name: Create Conan profile (Android arm64-v8a)
         run: |
@@ -45,7 +37,7 @@ jobs:
           echo "arch=armv8" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "compiler=clang" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "compiler.version=9" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "compiler.libcxx=libc++" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "compiler.libcxx=libstdc++" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "build_type=Release" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "[env]" >> ~/.conan/profiles/android_21_arm64_v8a
@@ -57,28 +49,13 @@ jobs:
           echo "" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "[conf]" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "tools.android:ndk_path=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "tools.build:cross_building=1" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "tools.gnu:host=aarch64-linux-android" >> ~/.conan/profiles/android_21_arm64_v8a
 
-      - name: Build libiconv for Android
+      - name: Build Boost for Android (full)
         run: |
-          mkdir -p $HOME/build/libiconv-android
-          cd $HOME/build/libiconv-android
-          wget https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz
-          tar xf libiconv-1.17.tar.gz
-          cd libiconv-1.17
-          ./configure \
-            --host=aarch64-linux-android \
-            --prefix=$HOME/android-libs/libiconv \
-            --enable-static \
-            --disable-shared
-          make -j$(nproc)
-          make install
+          conan install boost/1.81.0@ --profile android_21_arm64_v8a --build=missing
 
-      - name: Build Boost for Android
-        run: |
-          conan install boost/1.81.0@ \
-            --profile android_21_arm64_v8a \
-            --build=missing \
-            -o boost:without_stacktrace=True \
-            -o boost:without_python=True
+      - name: Upload Conan cache as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: conan-boost-android
+          path: ~/.conan/data
