@@ -64,7 +64,9 @@ jobs:
             --profile android_21_arm64_v8a \
             --build=missing \
             -o boost:without_stacktrace=True \
-            -o boost:without_python=True
+            -o boost:without_python=True \
+            -o libiconv:shared=False \
+            -o libiconv:with_iconv=False
 
   build-mevacoin:
     runs-on: ubuntu-latest
