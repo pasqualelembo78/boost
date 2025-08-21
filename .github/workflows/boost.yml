@@ -40,22 +40,22 @@ jobs:
         run: |
           mkdir -p ~/.conan/profiles
           cat > ~/.conan/profiles/android_21_arm64_v8a << 'EOF'
-[settings]
-os=Android
-os.api_level=21
-arch=armv8
-compiler=clang
-compiler.version=9
-compiler.libcxx=libstdc++
-build_type=Release
+          [settings]
+          os=Android
+          os.api_level=21
+          arch=armv8
+          compiler=clang
+          compiler.version=9
+          compiler.libcxx=libstdc++
+          build_type=Release
 
-[env]
-ANDROID_NDK=$HOME/android-ndk
-CC=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
-CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++
-AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
-RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
-EOF
+          [env]
+          ANDROID_NDK=$HOME/android-ndk
+          CC=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
+          CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++
+          AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
+          EOF
 
       - name: Build Boost for Android
         run: |
