@@ -39,23 +39,24 @@ jobs:
       - name: Create Conan profile (Android arm64-v8a)
         run: |
           mkdir -p ~/.conan/profiles
-          cat > ~/.conan/profiles/android_21_arm64_v8a << 'EOF'
-          [settings]
-          os=Android
-          os.api_level=21
-          arch=armv8
-          compiler=clang
-          compiler.version=9
-          compiler.libcxx=libstdc++
-          build_type=Release
-
-          [env]
-          ANDROID_NDK=$HOME/android-ndk
-          CC=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
-          CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++
-          AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
-          RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
-          EOF
+          echo "[settings]" > ~/.conan/profiles/android_21_arm64_v8a
+          echo "os=Android" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "os.api_level=21" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "arch=armv8" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "compiler=clang" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "compiler.version=9" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "compiler.libcxx=libstdc++" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "build_type=Release" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "[env]" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "ANDROID_NDK=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "CC=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "[conf]" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "tools.android:ndk_path=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
 
       - name: Build Boost for Android
         run: |
