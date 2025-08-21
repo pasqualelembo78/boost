@@ -59,9 +59,6 @@ jobs:
           echo "tools.android:ndk_path=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "tools.build:cross_building=1" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "tools.gnu:host=aarch64-linux-android" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "[options]" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "libiconv:configure_args=--host=aarch64-linux-android" >> ~/.conan/profiles/android_21_arm64_v8a
 
       - name: Build Boost (and libiconv) for Android
         run: |
