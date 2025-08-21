@@ -57,16 +57,16 @@ jobs:
           echo "" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "[conf]" >> ~/.conan/profiles/android_21_arm64_v8a
           echo "tools.android:ndk_path=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "tools.build:cross_building=1" >> ~/.conan/profiles/android_21_arm64_v8a
+          echo "tools.gnu:host=aarch64-linux-android" >> ~/.conan/profiles/android_21_arm64_v8a
 
-      - name: Build Boost for Android
+      - name: Build Boost (and libiconv) for Android
         run: |
           conan install boost/1.81.0@ \
             --profile android_21_arm64_v8a \
             --build=missing \
             -o boost:without_stacktrace=True \
-            -o boost:without_python=True \
-            -o libiconv:shared=False \
-            -o libiconv:with_iconv=False
+            -o boost:without_python=True
 
   build-mevacoin:
     runs-on: ubuntu-latest
