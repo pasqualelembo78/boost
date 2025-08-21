@@ -6,6 +6,7 @@ on:
 jobs:
   build-boost:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
 
     steps:
       - name: Checkout repo
@@ -16,17 +17,19 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install system build tools
         run: |
           sudo apt update
-          sudo apt install -y git unzip cmake ninja-build
+          sudo apt install -y git unzip cmake ninja-build build-essential pkg-config autoconf automake libtool wget
           pip install "conan==1.60.2"
 
       - name: Download Android NDK
         run: |
           wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
-          unzip android-ndk-r26d-linux.zip
+          unzip -q android-ndk-r26d-linux.zip
           mv android-ndk-r26d $HOME/android-ndk
+          export PATH=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+          ls -la $HOME/android-ndk
 
       - name: Cache Conan packages
         uses: actions/cache@v3
@@ -39,44 +42,120 @@ jobs:
       - name: Create Conan profile (Android arm64-v8a)
         run: |
           mkdir -p ~/.conan/profiles
-          echo "[settings]" > ~/.conan/profiles/android_21_arm64_v8a
-          echo "os=Android" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "os.api_level=21" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "arch=armv8" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "compiler=clang" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "compiler.version=9" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "compiler.libcxx=libstdc++" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "build_type=Release" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "[env]" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "ANDROID_NDK=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "CC=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "[conf]" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "tools.android:ndk_path=$HOME/android-ndk" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "tools.build:cross_building=1" >> ~/.conan/profiles/android_21_arm64_v8a
-          echo "tools.gnu:host=aarch64-linux-android" >> ~/.conan/profiles/android_21_arm64_v8a
+          cat > ~/.conan/profiles/android_21_arm64_v8a <<'PROFILE'
+[settings]
+os=Android
+os.api_level=21
+arch=armv8
+compiler=clang
+compiler.version=9
+compiler.libcxx=libstdc++
+build_type=Release
 
-      - name: Build Boost for Android
+[env]
+ANDROID_NDK=$HOME/android-ndk
+CC=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
+CXX=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++
+AR=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+RANLIB=$HOME/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
+
+[conf]
+tools.android:ndk_path=$HOME/android-ndk
+tools.build:cross_building=1
+tools.gnu:host=aarch64-linux-android
+PROFILE
+
+      - name: Create local libiconv conan recipe
         run: |
+          mkdir -p local_recipes/libiconv
+          cat > local_recipes/libiconv/conanfile.py <<'PY'
+from conans import ConanFile, tools
+import os
+import shutil
+
+class LibiconvConan(ConanFile):
+    name = "libiconv"
+    version = "1.17"
+    settings = "os", "arch", "compiler", "build_type"
+    exports_sources = []
+    no_copy_source = False
+    def source(self):
+        tools.get("https://ftp.gnu.org/gnu/libiconv/libiconv-1.17.tar.gz", strip_root=True)
+
+    def build(self):
+        ndk = os.environ.get("ANDROID_NDK")
+        if not ndk:
+            raise Exception("ANDROID_NDK environment variable not set")
+        # use the android clang from ndk
+        cc = os.path.join(ndk, "toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang")
+        ar = os.path.join(ndk, "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar")
+        ranlib = os.path.join(ndk, "toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib")
+        src_dir = os.path.join(self.source_folder, "libiconv-1.17")
+        prefix = os.path.join(self.build_folder, "install")
+        with tools.chdir(src_dir):
+            env = {"CC": cc, "AR": ar, "RANLIB": ranlib}
+            args = [
+                "./configure",
+                "--host=aarch64-linux-android",
+                f"--prefix={prefix}",
+                "--disable-shared",
+                "--enable-static"
+            ]
+            self.run(" ".join(args), env=env)
+            self.run("make -j{}".format(os.cpu_count() or 2), env=env)
+            self.run("make install", env=env)
+
+    def package(self):
+        prefix = os.path.join(self.build_folder, "install")
+        if os.path.isdir(prefix):
+            # copy include and lib to package folder
+            self.copy(pattern="*", dst="include", src=os.path.join(prefix, "include"))
+            self.copy(pattern="*.a", dst="lib", src=os.path.join(prefix, "lib"))
+            self.copy(pattern="*.so*", dst="lib", src=os.path.join(prefix, "lib"), keep_path=False)
+
+    def package_info(self):
+        self.cpp_info.libs = ["iconv"]
+PY
+
+      - name: Build and export local libiconv package to Conan cache
+        env:
+          ANDROID_NDK: ${{ runner.home }}/android-ndk
+          CC: ${{ runner.home }}/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
+          CXX: ${{ runner.home }}/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang++
+          AR: ${{ runner.home }}/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          RANLIB: ${{ runner.home }}/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
+        run: |
+          # create the local package (this will put libiconv/1.17 into the local Conan cache)
+          conan create local_recipes/libiconv libiconv/1.17@ -pr android_21_arm64_v8a
+
+      - name: Build Boost for Android (using local libiconv)
+        run: |
+          # Build Boost and its dependencies; use iconv backend for i18n if desired
           conan install boost/1.81.0@ \
             --profile android_21_arm64_v8a \
             --build=missing \
-            -o boost:without_stacktrace=True \
-            -o boost:without_python=True
+            -o boost:i18n_backend=iconv \
+            -o boost:i18n_backend_iconv=libiconv \
+            -o boost:without_python=True \
+            -o boost:without_stacktrace=False
+
+      - name: (Optional) Upload Conan cache artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conan-cache
+          path: ~/.conan/data
 
   build-mevacoin:
     runs-on: ubuntu-latest
     needs: build-boost
+    timeout-minutes: 60
 
     steps:
       - name: Checkout Mevacoin repo
         uses: actions/checkout@v4
         with:
-          repository: pasqualelembo78/mevacoin
+          repository: pasqualelembo78/mevapool
           fetch-depth: 0
 
       - name: Set up Python 3.10
@@ -87,24 +166,22 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git unzip cmake ninja-build
+          sudo apt install -y git unzip cmake ninja-build build-essential pkg-config
           pip install "conan==1.60.2"
 
-      - name: Restore Conan cache
-        uses: actions/cache@v3
+      - name: Restore Conan cache (from previous job)
+        uses: actions/download-artifact@v4
         with:
-          path: ~/.conan/data
-          key: conan-android-boost-1.81.0-${{ runner.os }}-${{ hashFiles('**/conanfile.txt') }}
-          restore-keys: |
-            conan-android-boost-1.81.0-${{ runner.os }}-
+          name: conan-cache
+          path: $HOME/.conan/data
 
       - name: Download Android NDK
         run: |
           wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
-          unzip android-ndk-r26d-linux.zip
+          unzip -q android-ndk-r26d-linux.zip
           mv android-ndk-r26d $HOME/android-ndk
 
-      - name: Build Mevacoin
+      - name: Configure & build Mevacoin for Android
         run: |
           mkdir -p build/android
           cd build/android
@@ -117,7 +194,7 @@ jobs:
             -DBOOST_INCLUDEDIR=$HOME/.conan/data/boost/1.81.0/_/_/package/*/include \
             -DBOOST_LIBRARYDIR=$HOME/.conan/data/boost/1.81.0/_/_/package/*/lib \
             ../..
-          cmake --build .
+          cmake --build . -- -j$(nproc)
 
       - name: Upload Mevacoin Android binary
         uses: actions/upload-artifact@v4
